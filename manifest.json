@@ -6,9 +6,6 @@
   "permissions": [
     "storage", "scripting", "activeTab", "tabs","cookies"
   ],
-  "content_security_policy": {
-    "extension_pages": "script-src default-src 'self'"
-  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": "images/bubu.png"
