@@ -195,7 +195,7 @@
             inpurtArea: {
                 style: {
                     classList: ["InputArea"],
-                    width: '98%',
+                    width: '98.1%',
                     backgroundColor: '#FEDFC0'
 
                 },
@@ -822,7 +822,7 @@
 
         console.log('start init!!!')
         //init appmodle from browser storage
-        if (chrome !== null) {
+        if (chrome.storage) {
             console.log('init():has extion api,load frome storage now')
             await chrome?.storage?.sync.get(["bubusettings"]).then((result) => {
                 console.log("bubusettings is ", result);
@@ -949,15 +949,6 @@
         }
 
     }
-
-
-
-    //js lib
-
-
-
-
-
 
 
 

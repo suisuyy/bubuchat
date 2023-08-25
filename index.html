@@ -5,9 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubu demo</title>
     <script src="./scripts/marked.js"></script>
-    <script src="./scripts/content.js"></script>
+    <script src="./scripts/content.js" defer></script>
 </head>
 <body>
+    <h1>This is Bubu</h1>
     
+    <div>bubu shoud apear at <strong>right-bottom </strong> ,try select this text,click trans to tranlate the text;drag bubu icon to move </div>
+    <div>
+        this page not part of bubu extension,its for quickly trying bubu.after install bubu will apear like this on any webpage 
+    </div>
+
+
+    <h2>From README.md</h2><div class="ReadmeContainer">
+        
+    </div>
+
 </body>
+<script type="text/javascript">
+    let utf8Decoder = new TextDecoder();
+
+    let readmeContainer=document.querySelector('.ReadmeContainer');
+    readmeContainer.innerHTML='start render reademe'
+    
+    let result='';
+    let charsReceived;
+    fetch('./README.md')
+    .then(res=>{
+        let reader=(res.body.getReader())
+
+        // let { value: chunk, done: readerDone } = await reader.read();
+        // chunk = chunk ? utf8Decoder.decode(chunk) : "";
+        // console.log(chunk)
+        
+        reader.read().then(function processText({ done, value }) {
+        // Result objects contain two properties:
+        // done  - true if the stream has already given you all its data.
+        // value - some data. Always undefined when done is true.
+        console.log(done,value);
+
+        if (done) {
+          let textContent = result;
+          return;
+        }
+
+        // value for fetch streams is a Uint8Array
+        charsReceived += value.length;
+        let text=utf8Decoder.decode(value.buffer);
+        readmeContainer.textContent = text;
+
+        readmeContainer.innerHTML = window.marked.parse(text);
+
+
+
+        // Read some more, and call this function again
+        return reader.read().then(processText);
+      });
+
+    })
+</script>
 </html>
