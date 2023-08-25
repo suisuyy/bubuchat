@@ -822,7 +822,7 @@
 
         console.log('start init!!!')
         //init appmodle from browser storage
-        if (chrome.storage) {
+        if (chrome) {
             console.log('init():has extion api,load frome storage now')
             await chrome?.storage?.sync.get(["bubusettings"]).then((result) => {
                 console.log("bubusettings is ", result);
