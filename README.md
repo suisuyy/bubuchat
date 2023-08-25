@@ -11,7 +11,7 @@ drag bubu icon at bottom-left screen to move.
 after install as broser extension,bubu will apear on any webpage,you can customize it and add more skill/prompt button as need
 
 
-<strong>this image show bubu as translator:select some text on page then click tran button </strong>
+<strong>this image show bubu as translator:select some text on page then click tran button </strong> <br>
 <img  src="./doc/img/demotrans.png">
 
 <br> <br> 
