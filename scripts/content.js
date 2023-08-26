@@ -14,7 +14,7 @@
 
     // Your code here...
     if (typeof chrome === 'undefined') {
-        console.log('chrome not found');
+        console.log('not run as extension ');
         window.chrome = null;
     }
 
@@ -118,7 +118,7 @@
 
 
     const preload_prompts = {
-        'tran': 'translate txt below to japanese,english,German,French,chinese,korean,  : ',
+        'tran': 'translate txt below to english,japanese,chinese,German,French,,korean,  : ',
         'defw': 'give definition of the word in english and chinese,give usage example for the word: ',
         'ask': 'gpt,',
     }
@@ -131,8 +131,8 @@
                 default: 'https://api.openai.com',
                 cn: 'https://api.chatanywhere.cn',
             },
-            req_path:{
-                completions:"/chat/completions"
+            req_path: {
+                completions: "/chat/completions"
             }
         },
         chatmodel: "gpt-3.5-turbo",
@@ -213,11 +213,17 @@
                     overflow: 'auto',
                 },
                 messages: [
-                    { "role": "user", "content": "how to use bubu" },
-                    { "role": "assistant", "content": "try to click bubu icon or drag it to move bubu" },
+                    { "role": "user", "content": "how to use bubu",  },
+                    { "role": "assistant", "content": "try to click bubu icon or drag it to move bubu",  },
                 ],
                 model: 'gpt-3.5-turbo',
-                temperature: 0.7
+                temperature: 0.7,
+                config:{
+                    isStreamed: true,
+                    model: 'gpt-3.5-turbo',
+                    temperature: 0.7,
+                    max_tokens: 10000,
+                }
             },
 
             menuContainer: {
@@ -415,6 +421,7 @@
 
             for (const [key, value] of Object.entries(appModel.bubuContainer.promptButtons.prompts)) {
                 console.log(`${key} ${value}`);
+                //key is button name,value is prompt prepend to selection txt
                 let promptButton = document.createElement('button');
                 promptButton.innerHTML = key;
                 promptButton.style.color = 'white';
@@ -425,7 +432,7 @@
                 promptButton.addEventListener('click', () => {
 
 
-                    appControler.sendMessage(`${value} ${appModel.bubuContainer.inpurtArea.value}`);
+                    appControler.sendMessage(`${value} ${appModel.bubuContainer.inpurtArea.value}`,appModel.bubuContainer.chatContainer.config.isStreamed);
 
                 })
 
@@ -664,59 +671,89 @@
             appControler.updateChatContainer();
             appControler.updateSettingContainer();
         },
-        sendMessage(message = null) {
+       async sendMessage(message = '', isStreamed = true) {
+            let userMessageId = Object.keys(appModel.bubuContainer.chatContainer.messages).length;
+            let assistantMessageId = userMessageId + 1;
+
+            let newMessagesArray = appModel.bubuContainer.chatContainer.messages;
             if (message !== null || message !== undefined || message !== '') {
-                let messages = appModel.bubuContainer.chatContainer.messages;
-                messages = [
-                    ...messages,
+                newMessagesArray = [
+                    ...newMessagesArray,
                     {
                         role: 'user',
-                        content: message
+                        content: message,
+                        // messageId: userMessageId
+                    },
+                    {
+                        role: 'assistant',
+                        content: 'please wait...',
+                        // messageId: assistantMessageId  cant send extra proper to openai, it will deny req
                     }
-                ],
-                    this.updateChatContainer({
-                        ...appModel.bubuContainer.chatContainer,
-                        messages
+                ];
+                this.updateChatContainer({
+                    ...appModel.bubuContainer.chatContainer,
+                    messages: newMessagesArray,
+
+                })
+            }
+
+            if (isStreamed === true) {
+                let chatsession = streamedgpt(
+                   newMessagesArray,
+                    (newMsgStr, deltaMsgStr) => {
+                        console.log(newMsgStr);
+                        newMessagesArray=[
+                            ...appModel.bubuContainer.chatContainer.messages
+                        ];
+                        newMessagesArray[assistantMessageId].content = newMsgStr;
+                        appControler.updateChatContainer({
+                            messages: newMessagesArray
+                        })
+                    }
+                );
+                await chatsession.generate();
+
+            }
+            else {
+
+                // fetch(`https://corsp.suisuy.eu.org?${appModel.api.url}/chat/completions`, {
+                fetch(`${appModel.api.url}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${appModel.api.key}`,
+                    },
+                    body: JSON.stringify({
+                        'model': appModel.chatmodel,
+                        'messages': appModel.bubuContainer.chatContainer.messages,
+                        'temperature': 0.7
+                    })
+                })
+                    .then(res => {
+                        res.json().then(res => {
+
+                            console.log(res);
+                            console.log(res?.choices[0].message.content);
+                            if (res?.choices === undefined) {
+                                return;
+                            }
+
+                            let oldMessages = appModel.bubuContainer.chatContainer.messages;
+                            appControler.updateChatContainer({
+                                ...appModel.bubuContainer.chatContainer,
+                                messages: [
+                                    ...oldMessages,
+                                    { "role": "assistant", "content": res?.choices[0].message.content },
+
+                                ]
+                            })
+                            return res;
+
+                        })
                     })
             }
 
-            // fetch(`https://corsp.suisuy.eu.org?${appModel.api.url}/chat/completions`, {
-            fetch(`${appModel.api.url}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${appModel.api.key}`,
-                },
-                body: JSON.stringify({
-                    'model': appModel.chatmodel,
-                    'messages': appModel.bubuContainer.chatContainer.messages,
-                    'temperature': 0.7
-                })
-            })
-                .then(res => {
-                    res.json().then(res => {
-
-                        console.log(res);
-                        console.log(res?.choices[0].message.content);
-                        if (res?.choices === undefined) {
-                            return;
-                        }
-
-                        let oldMessages = appModel.bubuContainer.chatContainer.messages;
-                        appControler.updateChatContainer({
-                            ...appModel.bubuContainer.chatContainer,
-                            messages: [
-                                ...oldMessages,
-                                { "role": "assistant", "content": res?.choices[0].message.content },
-
-                            ]
-                        })
-                        return res;
-
-                    })
-                })
-
-            //bingai
+            //bingai not working now
             if (appModel.AIprovider.bingchat.active === true) {
                 console.log('start bingchat')
                 let log = console.log;
@@ -742,7 +779,7 @@
                         socket.send(msg1);
                         socket.send(msg2_2);
                     }
-                    else{
+                    else {
                         console.log()
                     }
                 };
@@ -953,3 +990,118 @@
 
 
 })();
+
+
+//helper function
+/**
+ * This code demonstrates how to use the OpenAI API to generate chat completions.
+ * The generated completions are received as a stream of data from the API and the
+ * code includes functionality to handle errors and abort requests using an AbortController.
+ * The API_KEY variable needs to be updated with the appropriate value from OpenAI for successful API communication.
+ */
+
+setTimeout(() => {
+    console.log('streamedgpt() started');
+     return;
+    streamedgpt([
+        {
+            role: 'user',
+            content: 'hi,write js code to dplsay a object',
+        }
+    ]).generate();
+}, 2000);
+
+
+function streamedgpt(
+    msgs = [{ role: 'user', content: 'hi' }],
+    onMessageFunction = (newMsg, deltaMsg) => { console.log(newMsg, deltaMsg) },
+    config = { model: 'gpt3-turbo', temperature: 0.7, max_tokens: 10000, API_KEY: 'YOUR_API_KEY', API_URL: 'https://gptapi.suisuy.eu.org/chat/completions' },
+) {
+
+
+    const API_URL = config.API_URL || "https://gptapi.suisuy.eu.org/chat/completions";
+    const API_KEY = config.API_KEY || "YOUR_API_KEY";
+
+
+    let controller = null; // Store the AbortController instance
+
+    const generate = async () => {
+        // Create a new AbortController instance
+        controller = new AbortController();
+        const signal = controller.signal;
+
+        try {
+            // Fetch the response from the OpenAI API with the signal from AbortController
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: msgs,
+                    max_tokens: config.max_tokens,
+                    stream: true, // For streaming responses
+                }),
+                signal, // Pass the signal to the fetch request
+            });
+
+
+
+            // Read the response as a stream of data
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let totalMessage = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    break;
+                }
+                // Massage and parse the chunk of data
+                const chunk = decoder.decode(value);
+
+                const lines = chunk.split("\n");
+                const parsedLines = lines
+                    .map((line) => line.replace(/^data: /, "").trim()) // Remove the "data: " prefix
+                    .filter((line) => line !== "" && line !== "[DONE]") // Remove empty lines and "[DONE]"
+                    .map((line) => JSON.parse(line)); // Parse the JSON string
+
+                for (const parsedLine of parsedLines) {
+                    const { choices } = parsedLine;
+                    const { delta } = choices[0];
+                    const { content } = delta;
+                    // Update the UI with the new content
+                    if (content) {
+                        totalMessage += content;
+                        onMessageFunction(totalMessage, content);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            // Handle fetch request errors
+            if (signal.aborted) {
+                totalMessage = "Request aborted.";
+            } else {
+                console.error("Error:", error);
+                totalMessage = "Error occurred while generating.";
+            }
+        } finally {
+            // Enable the generate button and disable the stop button
+            controller = null; // Reset the AbortController instance
+        }
+    };
+
+    const stop = () => {
+        // Abort the fetch request by calling abort() on the AbortController instance
+        if (controller) {
+            controller.abort();
+            controller = null;
+        }
+    };
+
+    return { generate, stop };
+
+}

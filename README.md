@@ -53,13 +53,13 @@ Todo:
 Improve UI style and more cuter bubu icon and image : )
 
 
-Friendly and easy setting ,current only advanced setting by click icon then setting apear,remember to save after change done,its powerfull but not convient and risky,click bubu icon then  reset if broken
+Friendly and easy setting ,current only advanced setting,its powerfull but not convient and risky,click bubu icon then  reset if broken
 
 Change to testdriven dev,auto testing. now only manual testing 
 
 maybe add bingchat and google bard
 
-firefox fix. Bubu not work on some page when use firefox due to security policy,it prohibit sending 3rd api http request ,this not easy to fixed . use chrome based browser first 
+firefox fix. Bubu not work on some page(like github) when use firefox due to security policy,it prohibit sending 3rd api http request ,this not easy to fixed . use chrome based browser first 
 
 more simple and well structed code,currently all code messed in content.js 
 
