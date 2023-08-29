@@ -12,6 +12,21 @@
 (function () {
     'use strict';
 
+    chrome.runtime.onMessage.addListener((msgObj, sender, sendResponse) => {
+        console.log('got msg:', msgObj)
+        let oldChatContainerModel=appModel.AIprovider.bingchat.chatContainer;
+        window.appControler.updateBingContainer(
+            {
+                messages:[
+                    {role:'from bing',content:msgObj.message}
+                ],
+                style:{...oldChatContainerModel.style}
+            }
+        )
+
+    });
+
+
     // Your code here...
     if (typeof chrome === 'undefined') {
         console.log('not run as extension ');
@@ -40,8 +55,14 @@
         setTimeout(() => {
 
             // appControler.toggleSettingContainer();
+            // 1. Send a message to the service worker requesting the user's data
+            chrome.runtime.sendMessage('get-user-data', (response) => {
+                // 3. Got an asynchronous response with the data from the service worker
+                console.log('__________received user data', response);
+            });
 
 
+            
         }, 2000);
 
 
@@ -99,7 +120,9 @@
         width: 5px;
         background-color: lightblue;
       }
-
+.ChatContainer div  p {
+        color: black;
+}
 
 
 
@@ -112,18 +135,17 @@
     } else {
         style.appendChild(document.createTextNode(css));
     }
-
     document.getElementsByTagName('head')[0].appendChild(style);
 
 
 
     const preload_prompts = {
-        'tran': 'translate txt below to english,japanese,chinese,German,French,,korean,  : ',
-        'defw': 'give definition of the word in english and chinese,give usage example for the word: ',
-        'ask': 'gpt,',
+        'tran': 'translate txt below to English,Chinese  : ',
+        'defw': 'the word  has multi meanings,give all definitions and usage example of the word  in english and chinese  : ',
+        'ask': '',
     }
 
-    let appModel = {
+    window.appModel = {
         api: {
             url: 'https://gptapi.suisuy.eu.org',
             key: 'sk-FvDfZ4RW4xPjO1460WfvPPMRgBlesmjXJjH6V8LROGBTk4g',
@@ -132,15 +154,32 @@
                 cn: 'https://api.chatanywhere.cn',
             },
             req_path: {
-                completions: "/chat/completions"
+                completions: "/chat/completions",
+                alt: "/v1/chat/completions"
             }
         },
         chatmodel: "gpt-3.5-turbo",
         AIprovider: {
             bingchat: {
-                netType: 'wss',
-                url: 'wss://sydney.bing.com/sydney/ChatHub',
-                active: false
+                active: true,
+                chatContainer:{
+                    style:{
+                        classList: ["ChatContainer"],
+                        width: '100%',
+                        height: '70%',
+                        color: 'black',
+                        backgroundColor: 'inherit',
+                        borderTop:'lightblue solid',
+                        marginTop:'0.5',
+                        overflow: 'auto',
+                    },
+                    messages:[
+                        {
+                            role:'assistant',
+                            content:'this is bing,ask anything'
+                        }
+                    ]
+                }
             },
             bard: {
                 active: false
@@ -155,7 +194,7 @@
                 classList: ["BubuContainer"],
                 width: '30',
                 height: '30',
-                maxHeight: '50%',
+                maxHeight: '60%',
                 maxWidth: '350px',
                 scrollbarWidth: 'thin',
                 fontSize: '0.4',
@@ -164,7 +203,9 @@
                 position: 'fixed',
                 top: '80%',
                 left: '80%',
-                zIndex: 10000,
+                zIndex: 10000000000,
+                display: 'block',
+                overflow:'auto'
 
             },
 
@@ -175,7 +216,8 @@
                     width: 0.8,
                     height: 0.8,
                     position: 'sticky',
-                    float: 'left'
+                    float: 'left',
+                    top:0,
                 }
             },
             promptButtons: {
@@ -183,6 +225,7 @@
                 style: {
                     classList: ["PromptButtons"],
                     position: 'sticky',
+                    top:0,
                     // float: 'left',
                     width: 'auto',
                     height: 0.8,
@@ -195,7 +238,7 @@
             inpurtArea: {
                 style: {
                     classList: ["InputArea"],
-                    width: '98.1%',
+                    width: '98%',
                     backgroundColor: '#FEDFC0'
 
                 },
@@ -207,18 +250,18 @@
                 style: {
                     classList: ["ChatContainer"],
                     width: '100%',
-                    height: '80%',
+                    height: '60%',
                     color: 'black',
                     backgroundColor: 'inherit',
                     overflow: 'auto',
                 },
                 messages: [
-                    { "role": "user", "content": "how to use bubu",  },
-                    { "role": "assistant", "content": "try to click bubu icon or drag it to move bubu",  },
+                    { "role": "user", "content": "how to use bubu", },
+                    { "role": "assistant", "content": "try to click bubu icon or drag it to move bubu", },
                 ],
                 model: 'gpt-3.5-turbo',
                 temperature: 0.7,
-                config:{
+                config: {
                     isStreamed: true,
                     model: 'gpt-3.5-turbo',
                     temperature: 0.7,
@@ -256,6 +299,9 @@
                     }
                 },
                 menucontents: {
+                    bing: {
+                        name: 'bing',
+                    },
                     settings: {
                         name: 'setting',
                     },
@@ -297,7 +343,7 @@
                 backgroundColor: 'gray',
                 position: 'fixed',
                 overflow: 'auto',
-                zIndex: 10001,
+                zIndex: 1000000000,
 
             },
         },
@@ -305,7 +351,7 @@
 
     }
 
-    let appControler = {
+    window.appControler = {
         updateBubuContainer(newBubuContainer) {
             appModel.bubuContainer = {
                 ...appModel.bubuContainer,
@@ -370,8 +416,8 @@
                     pos4 = e.clientY;
                     // console.log(pos1,pos2,pos3,pos4)
                     // set the element's new position:
-                    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+                    elmnt.style.top = (elmnt.offsetTop - pos2*2) + "px";
+                    elmnt.style.left = (elmnt.offsetLeft - pos1*2) + "px";
                 }
 
                 function closeDragElement() {
@@ -432,7 +478,7 @@
                 promptButton.addEventListener('click', () => {
 
 
-                    appControler.sendMessage(`${value} ${appModel.bubuContainer.inpurtArea.value}`,appModel.bubuContainer.chatContainer.config.isStreamed);
+                    appControler.sendMessage(`${value} ${appModel.bubuContainer.inpurtArea.value}`, appModel.bubuContainer.chatContainer.config.isStreamed);
 
                 })
 
@@ -657,6 +703,31 @@
 
             createForm(appModel, container);
         },
+        updateBingContainer(newChatContainer) {
+            appModel.AIprovider.bingchat.chatContainer = {
+                ...appModel.AIprovider.bingchat.chatContainer,
+                ...newChatContainer
+            }
+            let chatContainer;
+            if (appView.bingchatContainer===undefined || appView.bingchatContainer===null) {
+                chatContainer = document.createElement('div');
+
+                appView.bubuContainer.append(chatContainer);
+                appView.bingchatContainer = chatContainer;
+            }else{
+                chatContainer=appView.bingchatContainer;
+            }
+            setStyle(appModel.AIprovider.bingchat.chatContainer, appView.bingchatContainer);
+
+            chatContainer.innerHTML = '';
+            for (const message of appModel.AIprovider.bingchat.chatContainer.messages) {
+                let messageDiv = document.createElement('div');
+                chatContainer.prepend(messageDiv);
+                messageDiv.innerHTML += `<span style="color:blue">${message.role}:</span>`
+                messageDiv.innerHTML += window.marked?.parse(message.content) || marked?.parse(message.content) || message.content;
+            }
+
+        },
         updateAll() {
             console.log('updateAll()')
             appModel.bubuContainer.promptButtons.prompts = {
@@ -671,7 +742,9 @@
             appControler.updateChatContainer();
             appControler.updateSettingContainer();
         },
-       async sendMessage(message = '', isStreamed = true) {
+        async sendMessage(message = '', isStreamed = true) {
+            appControler.menuClickListener.bing(message);
+
             let userMessageId = Object.keys(appModel.bubuContainer.chatContainer.messages).length;
             let assistantMessageId = userMessageId + 1;
 
@@ -697,12 +770,12 @@
                 })
             }
 
-            if (isStreamed === true) {
+            if (isStreamed === true || isStreamed === 'true') {
                 let chatsession = streamedgpt(
-                   newMessagesArray,
+                    newMessagesArray,
                     (newMsgStr, deltaMsgStr) => {
                         console.log(newMsgStr);
-                        newMessagesArray=[
+                        newMessagesArray = [
                             ...appModel.bubuContainer.chatContainer.messages
                         ];
                         newMessagesArray[assistantMessageId].content = newMsgStr;
@@ -755,54 +828,21 @@
 
             //bingai not working now
             if (appModel.AIprovider.bingchat.active === true) {
-                console.log('start bingchat')
-                let log = console.log;
-
-                let msg0 = '{"protocol":"json","version":1}';
-                let msg1 = '{"type":6}';
-                let msg2_2 = `{"arguments":[{"source":"cib","optionsSets":["nlu_direct_response_filter","deepleo","disable_emoji_spoken_text","responsible_ai_policy_235","enablemm","dv3sugg","iyxapbing","iycapbing","harmonyv3","saharagenconv5","cgptreasondl","fluxclmodelsp","fluxv1","rai278","replaceurl","enpcktrk","logosv1","udt4upm5gnd","eredirecturl"],"allowedMessageTypes":["ActionRequest","Chat","Context","InternalSearchQuery","InternalSearchResult","Disengaged","InternalLoaderMessage","Progress","RenderCardRequest","AdsQuery","SemanticSerp","GenerateContentQuery","SearchQuery"],"sliceIds":["edi","kcimgov2","0731ziv2","707enpcktrks0","0628ups0","816bof108s0","812fluxv1pcs0a","0518logos","810fluxhi52","727udtupm","815enftshrcs0"],"verbosity":"verbose","scenario":"SERP","plugins":[],"traceId":"64e09b83673945e48552074bc459d80a","isStartOfSession":false,"requestId":"369c4183-3a8c-4c81-dd41-d57b022085a7","message":{"locale":"en-GB","market":"en-GB","region":"JP","location":"lat:47.639557;long:-122.128159;re=1000m;","locationHints":[{"country":"Japan","state":"Tokyo","city":"Koto-Ku","zipcode":"162-0843","timezoneoffset":9,"Center":{"Latitude":35.6949,"Longitude":139.7377},"RegionType":2,"SourceType":1}],"userIpAddress":"13.114.30.22","timestamp":"2023-08-19T18:35:02+08:00","author":"user","inputMethod":"Keyboard","text":"write js code to display a object","messageType":"Chat","requestId":"369c4183-3a8c-4c81-dd41-d57b022085a7","messageId":"369c4183-3a8c-4c81-dd41-d57b022085a7"},"tone":"Balanced","conversationSignature":"MoF2rd13lmasyw+c2PrT6ZBAg1T5/+9vlUaXAzHyECo=","participant":{"id":"844425739378170"},"spokenTextMode":"None","conversationId":"51D|BingProdUnAuthenticatedUsers|53477B1D4ADF0508E54756199BCF768FE918E6C5E98996F6BC7B23BD434786D4"}],"invocationId":"3","target":"chat","type":4}`;
-
-
-                let socket = new WebSocket(
-                    //   'wss://javascript.info/article/websocket/demo/hello'
-                    // 'wss://sydney.bing.com/sydney/ChatHub,
-                    appModel.AIprovider.bingchat.url
-                );
-
-                socket.onopen = function (e) {
-                    log('[open] Connection established,send msg now');
-                    socket.send(msg0);
-                };
-                socket.onmessage = function (event) {
-                    log(`[message] Data received from server: ${event.data}`);
-                    if (event.data == '{}') {
-                        socket.send(msg1);
-                        socket.send(msg2_2);
-                    }
-                    else {
-                        console.log()
-                    }
-                };
-
-                socket.onclose = function (event) {
-                    if (event.wasClean) {
-                        log(
-                            `[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`
-                        );
-                    } else {
-                        // e.g. server process killed or network down
-                        // event.code is usually 1006 in this case
-                        log('[close] Connection died');
-                    }
-                };
-
-                socket.onerror = function (error) {
-                    log(`[error]`);
-                };
+                //todo
             }
 
         },
         menuClickListener: {
+            bing(message=appModel.bubuContainer.inpurtArea.value){
+                console.log('__________-send to bing:' ,message)
+                let msgObj={
+                    forbing: 'true',
+                    message: message
+                }
+                chrome.runtime.sendMessage(msgObj, (response) => {
+                    console.log('__________received frome backgroud', response);
+                });
+            },
             setting() {
                 let style = appModel.settingContainer.style;
                 if (style.display === 'none') {
@@ -1002,7 +1042,7 @@
 
 setTimeout(() => {
     console.log('streamedgpt() started');
-     return;
+    return;
     streamedgpt([
         {
             role: 'user',
@@ -1015,7 +1055,7 @@ setTimeout(() => {
 function streamedgpt(
     msgs = [{ role: 'user', content: 'hi' }],
     onMessageFunction = (newMsg, deltaMsg) => { console.log(newMsg, deltaMsg) },
-    config = { model: 'gpt3-turbo', temperature: 0.7, max_tokens: 10000, API_KEY: 'YOUR_API_KEY', API_URL: 'https://gptapi.suisuy.eu.org/chat/completions' },
+    config = { model: 'gpt3-turbo', temperature: 0.7, max_tokens: 10000, API_KEY: appModel.api.key, API_URL: `${appModel.api.url}${appModel.api.req_path.completions}` },
 ) {
 
 
@@ -1105,3 +1145,4 @@ function streamedgpt(
     return { generate, stop };
 
 }
+
