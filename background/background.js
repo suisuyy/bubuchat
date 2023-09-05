@@ -1,8 +1,4 @@
-const user = {
-  username: 'demo-user'
-};
-
-
+//not usable now 
 function sendMessageToActiveTab(msgObj={message:'hi this backgroud.js'}) {
   chrome.runtime.sendMessage('get-user-data', (response) => {
     chrome.tabs.query({ active: true, currentWindow: true }).then(res => {
@@ -18,8 +14,28 @@ function sendMessageToActiveTab(msgObj={message:'hi this backgroud.js'}) {
   });
 }
 
+function randomHexDigit() {
+  // An array of hex digits from 0 to F
+  const hexDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+  // Return a random element from the array
+  return hexDigits[Math.floor(Math.random() * hexDigits.length)];
+}
 
-console.log('this is bingchat index.js');
+// A function to generate a hex string with a given length
+function generateHexString(length) {
+  // Initialize an empty string
+  let hexString = "";
+  // Loop for the given length
+  for (let i = 0; i < length; i++) {
+    // Append a random hex digit to the string
+    hexString += randomHexDigit();
+  }
+  // Return the hex string
+  return hexString;
+}
+
+
+console.log('this is backgroudjs');
 
 const terminalChar = '';
 
@@ -100,7 +116,7 @@ class BingChat {
       }
       let stage = 0;
       ws.onmessage = (data) => {
-        // console.log(data?.data)
+        console.log(data)
         if (data?.data?.slice) {
           try {
             let msgObj = JSON.parse(data.data.replace(terminalChar, ''))
@@ -130,7 +146,7 @@ class BingChat {
         }
         if (stage === 0) {
           ws.send(`{"type":6}${terminalChar}`);
-          const traceId = '64e09b83673945e48552074bc459d80a';
+          const traceId = generateHexString(16).toLocaleLowerCase();
           // example location: 'lat:47.639557;long:-122.128159;re=1000m;'
           const locationStr = location
             ? `lat:${location.lat};long:${location.lng};re=${location.re || '1000m'
@@ -289,6 +305,7 @@ class BingChat {
         'x-ms-client-request-id': requestId,
         'x-ms-useragent':
           'azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.10.0 OS/MacIntel',
+          "Origin":"https://www.bing.com",
         // cookie,
       },
       referrer: 'https://www.bing.com/search',
@@ -347,5 +364,5 @@ chrome.runtime.onMessage.addListener(async (msgObj, sender, sendResponse) => {
 });
 
 //test
-//bots.bingchat.sendMessage('write js code to edit a object like {a:1,b:{c:3}}', );
+bots.bingchat.sendMessage('write js code to edit a object like {a:1,b:{c:3}}', );
 

@@ -33,6 +33,7 @@ Bubu is cute? maybe...
 
 
 # usage
+bubu is preconfigured for learning english in china,your can try to make it best for you need, its easy beacause High customizable ability .
 current not available in chrome store or firefox,need install the extension manully:download the repo,then go to chrome extension setting,enable dev mode,then load unpacked choose the project folder; extension works on android kiwi browser or firefox. 
 
 1.after install it,bubu will apear on the webpage at left bottom,click icon to show more settings,drag it to move the window

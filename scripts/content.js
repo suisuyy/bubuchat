@@ -12,21 +12,6 @@
 (function () {
     'use strict';
 
-    chrome.runtime.onMessage.addListener((msgObj, sender, sendResponse) => {
-        console.log('got msg:', msgObj)
-        let oldChatContainerModel=appModel.AIprovider.bingchat.chatContainer;
-        window.appControler.updateBingContainer(
-            {
-                messages:[
-                    {role:'from bing',content:msgObj.message}
-                ],
-                style:{...oldChatContainerModel.style}
-            }
-        )
-
-    });
-
-
     // Your code here...
     if (typeof chrome === 'undefined') {
         console.log('not run as extension ');
@@ -51,19 +36,19 @@
             })
         })
 
-        //test put here
-        setTimeout(() => {
-
-            // appControler.toggleSettingContainer();
-            // 1. Send a message to the service worker requesting the user's data
-            chrome.runtime.sendMessage('get-user-data', (response) => {
-                // 3. Got an asynchronous response with the data from the service worker
-                console.log('__________received user data', response);
-            });
-
-
-            
-        }, 2000);
+        chrome.runtime?.onMessage.addListener((msgObj, sender, sendResponse) => {
+            console.log('got msg:', msgObj)
+            let oldChatContainerModel=appModel.AIprovider.bingchat.chatContainer;
+            window.appControler.updateBingContainer(
+                {
+                    messages:[
+                        {role:'from bing',content:msgObj.message}
+                    ],
+                    style:{...oldChatContainerModel.style}
+                }
+            )
+    
+        });
 
 
     }
@@ -103,23 +88,16 @@
     //setup you css
     var css = `
 
-.BubuContainer textarea::-webkit-scrollbar {
+.BubuContainer *::-webkit-scrollbar {
         width: 5px;
         background-color: transparent;
-      }
-.BubuContainer textarea::-webkit-scrollbar-thumb {
+}
+.BubuContainer *::-webkit-scrollbar-thumb {
         width: 5px;
         background-color: lightblue;
-      }
+}
 
-.ChatContainer::-webkit-scrollbar {
-        width: 5px;
-        background-color: transparent;
-      }
-.ChatContainer::-webkit-scrollbar-thumb {
-        width: 5px;
-        background-color: lightblue;
-      }
+
 .ChatContainer div  p {
         color: black;
 }
@@ -150,8 +128,9 @@
             url: 'https://gptapi.suisuy.eu.org',
             key: 'sk-FvDfZ4RW4xPjO1460WfvPPMRgBlesmjXJjH6V8LROGBTk4g',
             moreurl: {
-                default: 'https://api.openai.com',
+                openai: 'https://api.openai.com',
                 cn: 'https://api.chatanywhere.cn',
+                bubu:'https://gptapi.suisuy.eu.org',
             },
             req_path: {
                 completions: "/chat/completions",
@@ -193,8 +172,8 @@
             style: {
                 classList: ["BubuContainer"],
                 width: '30',
-                height: '30',
-                maxHeight: '60%',
+                height: '50%',
+                maxHeight: '400px',
                 maxWidth: '350px',
                 scrollbarWidth: 'thin',
                 fontSize: '0.4',
@@ -250,14 +229,14 @@
                 style: {
                     classList: ["ChatContainer"],
                     width: '100%',
-                    height: '60%',
+                    height: '80%',
                     color: 'black',
                     backgroundColor: 'inherit',
                     overflow: 'auto',
                 },
                 messages: [
-                    { "role": "user", "content": "how to use bubu", },
-                    { "role": "assistant", "content": "try to click bubu icon or drag it to move bubu", },
+                    { "role": "user", "content": "hi", },
+                    { "role": "assistant", "content": "hi anything i can help you? try to click bubu icon and drag topbar", },
                 ],
                 model: 'gpt-3.5-turbo',
                 temperature: 0.7,
@@ -366,8 +345,7 @@
             else {
                 bubuContainer = appView.bubuContainer;
             }
-            //todo need delete
-            // bubuContainer.innerHTML = 'bu'
+           
             bubuContainer.classList.add(['BubuContainer']);
             setStyle(appModel.bubuContainer, bubuContainer);
         },
@@ -385,48 +363,7 @@
             setStyle(appModel.bubuContainer.bubuIcon, appView.bubuIcon);
 
 
-            //make draggable
-            appView.bubuContainer.style.touchAction = 'none' //need on touch devices
-            dragElement(appView.bubuContainer);
-            function dragElement(elmnt) {
-                var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-                // otherwise, move the DIV from anywhere inside the DIV:
-                appView.bubuIcon.onpointerdown = dragMouseDown;
-
-
-                function dragMouseDown(e) {
-                    e = e || window.event;
-                    e.preventDefault();
-                    // get the mouse cursor position at startup:
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    document.onpointerup = closeDragElement;
-                    // call a function whenever the cursor moves:
-                    document.onpointermove = elementDrag;
-                }
-
-                function elementDrag(e) {
-                    e = e || window.event;
-                    e.preventDefault();
-                    // calculate the new cursor position:
-                    pos1 = pos3 - e.clientX;
-                    pos2 = pos4 - e.clientY;
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    // console.log(pos1,pos2,pos3,pos4)
-                    // set the element's new position:
-                    elmnt.style.top = (elmnt.offsetTop - pos2*2) + "px";
-                    elmnt.style.left = (elmnt.offsetLeft - pos1*2) + "px";
-                }
-
-                function closeDragElement() {
-                    // stop moving when mouse button is released:
-                    console.log('pointerup')
-                    document.onpointerup = null;
-                    document.onpointermove = null;
-                }
-            }
+            
 
             appView.bubuIcon.addEventListener('click', () => {
                 console.log('click icon')
@@ -458,6 +395,9 @@
 
 
             appView.promptButtons.innerHTML = '';
+            //todo: add drag
+            dragElement(appView.promptButtons,appView.bubuContainer,appModel.bubuContainer.dragSpeed || 3);
+
             setStyle(promptButtonsModel, appView.promptButtons);
             // appView.promptButtons.style.marginLeft = appModel.bubuContainer.bubuIcon.style.width + appModel.sizeUnit;
             // appView.promptButtons.style.position='fixed';
@@ -476,10 +416,19 @@
                 promptButton.style.padding = '0';
                 promptButton.style.marginLeft = '8px';
                 promptButton.addEventListener('click', () => {
+                    let msgstr=`${value} ${appModel.bubuContainer.inpurtArea.value}`;
+                    appControler.sendMessage(msgstr, appModel.bubuContainer.chatContainer.config.isStreamed);
+                    let bingSearchBox=document.querySelector('#searchbox');
+                    console.log('bingsearchbox set')
+                    let serachbox=document.querySelector("#b_sydConvCont > cib-serp").shadowRoot.querySelector("#cib-action-bar-main").shadowRoot.querySelector("div > div.main-container > div > div.input-row > cib-text-input").shadowRoot.querySelector("#searchbox");
+                    serachbox.value=msgstr;
+                    serachbox.focus();
+                    document.execCommand('insertText', false, ' ');
+                    
 
-
-                    appControler.sendMessage(`${value} ${appModel.bubuContainer.inpurtArea.value}`, appModel.bubuContainer.chatContainer.config.isStreamed);
-
+                    setTimeout(() => {
+                        document.querySelector("#b_sydConvCont > cib-serp").shadowRoot.querySelector("#cib-action-bar-main").shadowRoot.querySelector("div > div.main-container > div > div.bottom-controls > div.bottom-right-controls > div.control.submit > cib-icon-button").shadowRoot.querySelector("button").click()
+                    }, 1000);
                 })
 
                 appView.promptButtons.appendChild(promptButton);
@@ -839,7 +788,7 @@
                     forbing: 'true',
                     message: message
                 }
-                chrome.runtime.sendMessage(msgObj, (response) => {
+                chrome.runtime?.sendMessage(msgObj, (response) => {
                     console.log('__________received frome backgroud', response);
                 });
             },
@@ -899,7 +848,7 @@
 
         console.log('start init!!!')
         //init appmodle from browser storage
-        if (chrome) {
+        if (chrome?.storage) {
             console.log('init():has extion api,load frome storage now')
             await chrome?.storage?.sync.get(["bubusettings"]).then((result) => {
                 console.log("bubusettings is ", result);
@@ -972,24 +921,6 @@
 
 
 
-
-    // chrome?.storage?.onChanged?.addListener((changes, namespace) => {
-    //     for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-    //         console.log(
-    //             `Storage key "${key}" in namespace "${namespace}" changed.`,
-    //             `Old value was "${oldValue}", new value is "${newValue}".`
-    //         );
-    //     }
-    // });
-
-    // chrome?.storage?.sync?.set({ test: { a: 1, b: 'str2' } }).then(() => {
-    //     console.log("Value is set");
-    // });
-
-    // chrome?.storage?.sync?.get(["test"]).then((result) => {
-    //     console.log("Value currently is ", result);
-    //     //result is object {a:1,b:'str2'}
-    // });
 
     function resetSetting() {
         chrome?.storage?.sync?.set({ 'bubusettings': {} }).then(res => {
@@ -1146,3 +1077,64 @@ function streamedgpt(
 
 }
 
+//make draggable
+function dragElement(elmnt,movableElmnt=elmnt.parentElement,speed=3) {
+    elmnt.style.touchAction = 'none' //need on touch devices
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+    let shadeDiv;
+    let rmShadeTimeout;
+
+    // otherwise, move the DIV from anywhere inside the DIV:
+    elmnt.onpointerdown = dragMouseDown;
+
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // get the mouse cursor position at startup:
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onpointerup = closeDragElement;
+        // call a function whenever the cursor moves:
+        document.onpointermove = elementDrag;
+
+        //create a shade to cover full body to stop iframe catch mouse move
+        shadeDiv=document.createElement('div');
+        shadeDiv.style.width="300vw";
+        shadeDiv.style.height="300vh";
+        shadeDiv.style.position="fixed";
+        shadeDiv.style.top='0';
+        shadeDiv.style.left='0';
+        shadeDiv.style.backgroundColor='rgb(20,20,0,0.2)'
+        shadeDiv.style.zIndex=100000
+        document.body.appendChild(shadeDiv);
+        rmShadeTimeout= setTimeout(() => {
+            document.body.removeChild(shadeDiv);
+        }, 20000);
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // calculate the new cursor position:
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        // console.log(pos1,pos2,pos3,pos4)
+        // set the element's new position:
+        movableElmnt.style.top = (movableElmnt.offsetTop - pos2*speed) + "px";
+        movableElmnt.style.left = (movableElmnt.offsetLeft - pos1*speed) + "px";
+    }
+
+    function closeDragElement() {
+        // stop moving when mouse button is released:
+        console.log('pointerup')
+        document.onpointerup = null;
+        document.onpointermove = null;
+
+        document.body.removeChild(shadeDiv);
+        clearTimeout(rmShadeTimeout);
+    }
+}

@@ -72,3 +72,8 @@ chrome.storage.sync.get(["test"]).then((result) => {
 
 ```
 
+
+# fix drag on touch device
+these is a problem with pointerdown event on touch device,use this fix:
+            appView.bubuContainer.style.touchAction = 'none' //need on touch devices
+
