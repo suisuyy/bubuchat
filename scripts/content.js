@@ -22,10 +22,9 @@
     async function main() {
         await loadjs();
         await init();
+
+
         // addEventListener version
-        document.addEventListener("selectionchange", () => {
-            console.log(document.getSelection());
-        });
         document.addEventListener('selectionchange', () => {
             console.log('slectionchange', window.getSelection().toString());
             if (window.getSelection().toString().length <= 0) {
@@ -36,18 +35,42 @@
             })
         })
 
+
+        //watch clipboard
+        watchClipboard((text) => {
+            appControler.updateInputArea({
+                value: text
+            })
+        })
+        function watchClipboard(changeFun = (text) => console.log(text)) {
+            let oldClipText = '';
+            setInterval(() => {
+                navigator.clipboard.readText().then((clipText) => {
+                    if (clipText.length <= 1) return;
+                    if (clipText === oldClipText) {
+                        console.log('clip not change');
+                    } else {
+                        console.log('clip change:', clipText);
+                        changeFun(clipText);
+                        oldClipText = clipText;
+                    }
+                });
+            }, 1000);
+        }
+
+
         chrome.runtime?.onMessage.addListener((msgObj, sender, sendResponse) => {
             console.log('got msg:', msgObj)
-            let oldChatContainerModel=appModel.AIprovider.bingchat.chatContainer;
+            let oldChatContainerModel = appModel.AIprovider.bingchat.chatContainer;
             window.appControler.updateBingContainer(
                 {
-                    messages:[
-                        {role:'from bing',content:msgObj.message}
+                    messages: [
+                        { role: 'from bing', content: msgObj.message }
                     ],
-                    style:{...oldChatContainerModel.style}
+                    style: { ...oldChatContainerModel.style }
                 }
             )
-    
+
         });
 
 
@@ -85,8 +108,21 @@
     };
 
 
-    //setup you css
-    var css = `
+//setup you css that not easy in javascript
+let css = 
+`
+.BubuContainer {
+
+}
+.BubuContainer *{
+    color: black;
+    -webkit-user-select: text;
+}
+
+.BubuContainer::-webkit-scrollbar {
+        width: 0px;
+        background-color: transparent;
+}
 
 .BubuContainer *::-webkit-scrollbar {
         width: 5px;
@@ -96,14 +132,6 @@
         width: 5px;
         background-color: lightblue;
 }
-
-
-.ChatContainer div  p {
-        color: black;
-}
-
-
-
 
 `
     var style = document.createElement('style');
@@ -129,8 +157,9 @@
             key: 'sk-FvDfZ4RW4xPjO1460WfvPPMRgBlesmjXJjH6V8LROGBTk4g',
             moreurl: {
                 openai: 'https://api.openai.com',
-                cn: 'https://api.chatanywhere.cn',
-                bubu:'https://gptapi.suisuy.eu.org',
+                cn: 'https://api.chatanywhere.com.cn',
+                cn1: 'https://api.chatanywhere.cn',
+                bubu: 'https://gptapi.suisuy.eu.org',
             },
             req_path: {
                 completions: "/chat/completions",
@@ -141,21 +170,21 @@
         AIprovider: {
             bingchat: {
                 active: true,
-                chatContainer:{
-                    style:{
+                chatContainer: {
+                    style: {
                         classList: ["ChatContainer"],
                         width: '100%',
                         height: '70%',
                         color: 'black',
                         backgroundColor: 'inherit',
-                        borderTop:'lightblue solid',
-                        marginTop:'0.5',
+                        borderTop: 'lightblue solid',
+                        marginTop: '0.5',
                         overflow: 'auto',
                     },
-                    messages:[
+                    messages: [
                         {
-                            role:'assistant',
-                            content:'this is bing,ask anything'
+                            role: 'assistant',
+                            content: 'this is bing,ask anything'
                         }
                     ]
                 }
@@ -184,7 +213,7 @@
                 left: '80%',
                 zIndex: 10000000000,
                 display: 'block',
-                overflow:'auto'
+                overflow: 'auto'
 
             },
 
@@ -196,7 +225,7 @@
                     height: 0.8,
                     position: 'sticky',
                     float: 'left',
-                    top:0,
+                    top: 0,
                 }
             },
             promptButtons: {
@@ -204,7 +233,7 @@
                 style: {
                     classList: ["PromptButtons"],
                     position: 'sticky',
-                    top:0,
+                    top: 0,
                     // float: 'left',
                     width: 'auto',
                     height: 0.8,
@@ -278,6 +307,9 @@
                     }
                 },
                 menucontents: {
+                    copy:{
+                        name: 'copy'
+                    },
                     bing: {
                         name: 'bing',
                     },
@@ -345,7 +377,7 @@
             else {
                 bubuContainer = appView.bubuContainer;
             }
-           
+
             bubuContainer.classList.add(['BubuContainer']);
             setStyle(appModel.bubuContainer, bubuContainer);
         },
@@ -363,7 +395,7 @@
             setStyle(appModel.bubuContainer.bubuIcon, appView.bubuIcon);
 
 
-            
+
 
             appView.bubuIcon.addEventListener('click', () => {
                 console.log('click icon')
@@ -396,7 +428,7 @@
 
             appView.promptButtons.innerHTML = '';
             //todo: add drag
-            dragElement(appView.promptButtons,appView.bubuContainer,appModel.bubuContainer.dragSpeed || 3);
+            dragElement(appView.promptButtons, appView.bubuContainer, appModel.bubuContainer.dragSpeed || 3);
 
             setStyle(promptButtonsModel, appView.promptButtons);
             // appView.promptButtons.style.marginLeft = appModel.bubuContainer.bubuIcon.style.width + appModel.sizeUnit;
@@ -416,15 +448,15 @@
                 promptButton.style.padding = '0';
                 promptButton.style.marginLeft = '8px';
                 promptButton.addEventListener('click', () => {
-                    let msgstr=`${value} ${appModel.bubuContainer.inpurtArea.value}`;
+                    let msgstr = `${value} ${appModel.bubuContainer.inpurtArea.value}`;
                     appControler.sendMessage(msgstr, appModel.bubuContainer.chatContainer.config.isStreamed);
-                    let bingSearchBox=document.querySelector('#searchbox');
+                    let bingSearchBox = document.querySelector('#searchbox');
                     console.log('bingsearchbox set')
-                    let serachbox=document.querySelector("#b_sydConvCont > cib-serp").shadowRoot.querySelector("#cib-action-bar-main").shadowRoot.querySelector("div > div.main-container > div > div.input-row > cib-text-input").shadowRoot.querySelector("#searchbox");
-                    serachbox.value=msgstr;
+                    let serachbox = document.querySelector("#b_sydConvCont > cib-serp").shadowRoot.querySelector("#cib-action-bar-main").shadowRoot.querySelector("div > div.main-container > div > div.input-row > cib-text-input").shadowRoot.querySelector("#searchbox");
+                    serachbox.value = msgstr;
                     serachbox.focus();
                     document.execCommand('insertText', false, ' ');
-                    
+
 
                     setTimeout(() => {
                         document.querySelector("#b_sydConvCont > cib-serp").shadowRoot.querySelector("#cib-action-bar-main").shadowRoot.querySelector("div > div.main-container > div > div.bottom-controls > div.bottom-right-controls > div.control.submit > cib-icon-button").shadowRoot.querySelector("button").click()
@@ -532,6 +564,7 @@
                     // Set the inner text of the list item
                     listItem.innerText = menuItem.name;
                     listItem.style.display = 'inline';
+                    listItem.style.color = 'white';
                     listItem.style.marginRight = '0.5' + appModel.sizeUnit;
                     // listItem.style.fontSize = '1'+appModel.sizeUnit;
                     // Add a click event handler to the list item
@@ -658,13 +691,13 @@
                 ...newChatContainer
             }
             let chatContainer;
-            if (appView.bingchatContainer===undefined || appView.bingchatContainer===null) {
+            if (appView.bingchatContainer === undefined || appView.bingchatContainer === null) {
                 chatContainer = document.createElement('div');
 
                 appView.bubuContainer.append(chatContainer);
                 appView.bingchatContainer = chatContainer;
-            }else{
-                chatContainer=appView.bingchatContainer;
+            } else {
+                chatContainer = appView.bingchatContainer;
             }
             setStyle(appModel.AIprovider.bingchat.chatContainer, appView.bingchatContainer);
 
@@ -698,6 +731,11 @@
             let assistantMessageId = userMessageId + 1;
 
             let newMessagesArray = appModel.bubuContainer.chatContainer.messages;
+            let oldMessagesArray=[...newMessagesArray,{
+                role: 'user',
+                content: message,
+                // messageId: userMessageId
+            },];
             if (message !== null || message !== undefined || message !== '') {
                 newMessagesArray = [
                     ...newMessagesArray,
@@ -708,7 +746,7 @@
                     },
                     {
                         role: 'assistant',
-                        content: 'please wait...',
+                        content: '...',
                         // messageId: assistantMessageId  cant send extra proper to openai, it will deny req
                     }
                 ];
@@ -721,7 +759,7 @@
 
             if (isStreamed === true || isStreamed === 'true') {
                 let chatsession = streamedgpt(
-                    newMessagesArray,
+                    oldMessagesArray,
                     (newMsgStr, deltaMsgStr) => {
                         console.log(newMsgStr);
                         newMessagesArray = [
@@ -782,9 +820,12 @@
 
         },
         menuClickListener: {
-            bing(message=appModel.bubuContainer.inpurtArea.value){
-                console.log('__________-send to bing:' ,message)
-                let msgObj={
+            copy(){
+                setClipboard(appModel.bubuContainer.inpurtArea.value);
+            },
+            bing(message = appModel.bubuContainer.inpurtArea.value) {
+                console.log('__________-send to bing:', message)
+                let msgObj = {
                     forbing: 'true',
                     message: message
                 }
@@ -949,6 +990,8 @@
         }
 
         element.classList.add(submodel.style.classList)
+        element.style.webkitUserSelect='text';
+        element.style.userSelect='text';
 
         for (const [key, value] of Object.entries(submodel.style)) {
             console.log('setStyle():', key, value)
@@ -1078,7 +1121,7 @@ function streamedgpt(
 }
 
 //make draggable
-function dragElement(elmnt,movableElmnt=elmnt.parentElement,speed=3) {
+function dragElement(elmnt, movableElmnt = elmnt.parentElement, speed = 3) {
     elmnt.style.touchAction = 'none' //need on touch devices
     var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
@@ -1100,16 +1143,16 @@ function dragElement(elmnt,movableElmnt=elmnt.parentElement,speed=3) {
         document.onpointermove = elementDrag;
 
         //create a shade to cover full body to stop iframe catch mouse move
-        shadeDiv=document.createElement('div');
-        shadeDiv.style.width="300vw";
-        shadeDiv.style.height="300vh";
-        shadeDiv.style.position="fixed";
-        shadeDiv.style.top='0';
-        shadeDiv.style.left='0';
-        shadeDiv.style.backgroundColor='rgb(20,20,0,0.2)'
-        shadeDiv.style.zIndex=100000
+        shadeDiv = document.createElement('div');
+        shadeDiv.style.width = "300vw";
+        shadeDiv.style.height = "300vh";
+        shadeDiv.style.position = "fixed";
+        shadeDiv.style.top = '0';
+        shadeDiv.style.left = '0';
+        shadeDiv.style.backgroundColor = 'rgb(230,230,230,0.2)'
+        shadeDiv.style.zIndex = 100000
         document.body.appendChild(shadeDiv);
-        rmShadeTimeout= setTimeout(() => {
+        rmShadeTimeout = setTimeout(() => {
             document.body.removeChild(shadeDiv);
         }, 20000);
     }
@@ -1124,8 +1167,8 @@ function dragElement(elmnt,movableElmnt=elmnt.parentElement,speed=3) {
         pos4 = e.clientY;
         // console.log(pos1,pos2,pos3,pos4)
         // set the element's new position:
-        movableElmnt.style.top = (movableElmnt.offsetTop - pos2*speed) + "px";
-        movableElmnt.style.left = (movableElmnt.offsetLeft - pos1*speed) + "px";
+        movableElmnt.style.top = (movableElmnt.offsetTop - pos2 * speed) + "px";
+        movableElmnt.style.left = (movableElmnt.offsetLeft - pos1 * speed) + "px";
     }
 
     function closeDragElement() {
@@ -1138,3 +1181,21 @@ function dragElement(elmnt,movableElmnt=elmnt.parentElement,speed=3) {
         clearTimeout(rmShadeTimeout);
     }
 }
+
+function setClipboard(text) {
+    const type = "text/plain";
+    const blob = new Blob([text], { type });
+    const data = [new ClipboardItem({ [type]: blob })];
+  
+    navigator.clipboard.write(data).then(
+      () => {
+        /* success */
+        console.log("writed to clipboard:",text)
+      },
+      () => {
+        /* failure */
+        console.log("failed writed to clipboard:",text)
+
+      },
+    );
+  }
